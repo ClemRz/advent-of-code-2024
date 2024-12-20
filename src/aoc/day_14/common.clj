@@ -1,5 +1,6 @@
 (ns aoc.day-14.common
-  (:require [clojure.string :as str]))
+  (:require [aoc.utils :refer [char-vector->char-matrix]]
+            [clojure.string :as str]))
 
 (defn- scan-robot
   [line]
@@ -40,9 +41,7 @@
   (->> (for [y (range size-y)
              x (range size-x)]
          (get freqs [x y] "."))
-       (partition size-x)
-       (map str/join)
-       (str/join "\n")
+       (char-vector->char-matrix size-x)
        println)
   (println time))
 
