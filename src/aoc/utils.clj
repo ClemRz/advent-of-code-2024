@@ -1,6 +1,7 @@
 (ns aoc.utils
   (:require [clojure.java.io :as io]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [criterium.core :as crit]))
 
 (defn slurp-input
   []
@@ -11,3 +12,7 @@
   (->> (partition width char-vector)
        (map str/join)
        (str/join "\n")))
+
+(defn bench
+  [x]
+  (crit/with-progress-reporting (crit/quick-bench x)))
