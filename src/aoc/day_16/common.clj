@@ -1,9 +1,11 @@
 (ns aoc.day-16.common
-  (:require [clojure.string :as str]))
+  (:require [aoc.utils :refer [char-vector->char-matrix]]
+            [clojure.string :as str]))
 
 (defonce EMPTY \.)
 (defonce START \S)
 (defonce EXIT \E)
+(defonce SEAT \O)
 (defonce STARTING-ORIENTATION :E)
 (defonce ORIENTATIONS [:N :E :S :W])
 (defonce STEP-COST 1)
@@ -68,28 +70,55 @@
   (min (or prev-cost ##Inf) new-cost))
 
 (defn- update-costs
-  [m costs visited position]
-  (let [current-cost (get costs position)]
+  [m costs visited node]
+  (let [current-cost (get costs node)]
     (reduce-kv
       (fn [costs neighbor neighbor-cost]
         (cond-> costs
                 (not (visited neighbor)) (update neighbor min-cost (+ current-cost neighbor-cost))))
       costs
-      (neighbors m position))))
+      (neighbors m node))))
 
 (defn dijkstra
   [{:keys [exit-position entry] :as m}]
   (loop [costs {entry 0}
          node entry
-         visited (hash-set node)]
+         visited (hash-set node)
+         predecessors {}]
     (let [c (get costs node ##Inf)]
       (cond
-        (or (= (:position node) exit-position) (= ##Inf c)) c
-        :else (let [next-costs (update-costs m costs visited node)
+        (or (= (:position node) exit-position) (= ##Inf c)) {:cost c :predecessors predecessors :m m}
+        :else (let [neighbors (neighbors m node)
+                    next-costs (update-costs m costs visited node)
                     [next-node] (reduce
                                   (fn [[_ prev-cost :as acc] [node cost :as new-acc]]
                                     (if (and (not (visited node)) (= cost (min-cost prev-cost cost)))
                                       new-acc
                                       acc))
                                   [] next-costs)]
-                (recur next-costs next-node (conj visited next-node)))))))
+
+                (->> (reduce-kv (fn [acc k v] (update acc (assoc k :cost (+ v c)) conj (assoc node :cost c))) predecessors neighbors)
+                     (recur next-costs next-node (conj visited next-node))))))))
+
+(defn update-maze
+  ([{:keys [predecessors] :as m}]
+   (update-maze m (first (filter #(and (= (-> m :m :exit-position) (:position %))) (keys predecessors)))))
+  ([{:keys [predecessors] :as m} {:keys [position] :as child}]
+   (reduce (fn [acc predecessor]
+             (update-maze acc predecessor))
+           (assoc-in m [:m :directory position] SEAT)
+           (get predecessors child))))
+
+(defn print-maze
+  [{{:keys [size directory]} :m :as m}]
+  (let [[height width] size]
+    (->> (for [r (range height)
+               c (range width)]
+           (get directory [r c] " "))
+         (char-vector->char-matrix width)
+         println))
+  m)
+
+(defn count-seats
+  [{{:keys [directory]} :m}]
+  (get (frequencies (vals directory)) SEAT))
