@@ -96,7 +96,6 @@
                                       new-acc
                                       acc))
                                   [] next-costs)]
-
                 (->> (reduce-kv (fn [acc k v] (update acc (assoc k :cost (+ v c)) conj (assoc node :cost c))) predecessors neighbors)
                      (recur next-costs next-node (conj visited next-node))))))))
 
